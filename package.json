@@ -1,0 +1,11 @@
+{
+  "name": "evident-behaviors",
+  "version": "1.0.0",
+  "description": "Simulating confidence and information through behavior dynamics",
+  "license": "AGPL-3.0-only",
+  "author": "operatorjen",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
