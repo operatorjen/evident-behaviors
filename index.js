@@ -1,3 +1,6 @@
+import { getStatus } from './status.js'
+import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight, precisionToVariance, speakGateFromTau, wobble } from './utils.js'
+
 const BEHAVIORAL_QUADRANTS = [
   [0, 0.25],
   [0.25, 0.5],
@@ -5,25 +8,48 @@ const BEHAVIORAL_QUADRANTS = [
   [0.75, 1.0]
 ]
 
-const JITTER = Math.random() * 0.01
-console.log('New JITTER setting for rounds:', JITTER)
+let players = []
 
-const clamp01 = x => Math.max(0, Math.min(1, x))
-const precisionToVariance = (tauOther) => Math.max(0.10, 1 / (tauOther + 1))
+const JITTER = Math.random() * 0.02
+console.log('New JITTER setting for rounds:', JITTER)
 
 const bayesUpdate = (mu, tau, z, r) => {
   const invR = 1 / r
   const tauPost = tau + invR
+  const PRECISION_DECAY = 0.95
+  const MAX_PRECISION = 50
+  // Add precision damping to prevent runaway growth
+  const dampedTau = Math.min(tauPost * PRECISION_DECAY, MAX_PRECISION)
   const muPost = (tau * mu + invR * z) / tauPost
-  return { mu: clamp01(muPost), tau: tauPost }
+  return { mu: clamp(muPost), tau: dampedTau }
 }
 
-const FORGET = 0.02
-const DRIFT = 0.02
-const timeUpdate = (mu, tau) => {
-  const tau2 = Math.max(0, tau * (1 - FORGET))
-  const mu2 = clamp01(mu + DRIFT * (0.5 - mu))
-  return { mu: mu2, tau: tau2 }
+const chooseAction = (infoMu, infoTau, confTau) => {
+  const OBSERVE_BASE = 0.3
+  const OBSERVE_EXTREME_BOOST = 0.4
+  const INSTIGATE_BASE = 0.05  
+  const INSTIGATE_CONFIDENCE_BOOST = 0.15
+  const UNCERTAINTY_OBSERVE_BONUS = 0.1
+  const UNCERTAINTY_INSTIGATE_PENALTY = 0.15
+  const RECEIVE_MINIMUM = 0.15
+  const wExt = observeWeight(infoMu) // more extreme info => more observe
+  const speakG = speakGateFromTau(confTau) // more certain => more likely to speak
+
+  let pObs = OBSERVE_BASE + OBSERVE_EXTREME_BOOST * wExt
+  let pInst = INSTIGATE_BASE + INSTIGATE_CONFIDENCE_BOOST * speakG * (1 - wExt) // speak mostly in the middle if certain
+
+  const wob = Math.min(1, wobble(infoTau))
+  pObs = clamp(pObs + UNCERTAINTY_OBSERVE_BONUS * wob)
+  pInst = clamp(pInst * (1 - UNCERTAINTY_INSTIGATE_PENALTY * wob))
+
+  const recvFloor = RECEIVE_MINIMUM
+  const pRecv = Math.max(recvFloor, 1 - (pObs + pInst))
+
+  let sum = pObs + pInst + pRecv
+  if (sum > 1) { pObs /= sum; pInst /= sum; pRecv /= sum }
+
+  const r = Math.random()
+  return r < pObs ? 'observe' : r < pObs + pInst ? 'instigate' : 'receive'
 }
 
 const getPriors = () => {
@@ -51,34 +77,28 @@ const getPriors = () => {
   }
 }
 
-const players = [
-  { id: 1, priors: getPriors() },
-  { id: 2, priors: getPriors() },
-  { id: 3, priors: getPriors() }
-]
-
-// INSTIGATE: actor broadcasts; OTHER updates (confidence→confidence, information→information)
+// INSTIGATE: actor broadcasts; others update (confidence→confidence, information→information)
 const instigate = (priors, id) => {
   players.forEach(p => {
     if (p.id !== id) {
       // confidence channel (actor → other)
       {
-        const z  = priors.beliefs.self.confidence
-        const r  = precisionToVariance(priors.precision.self.confidence)
-        const B  = p.priors.beliefs.self.confidence
-        const τ  = p.priors.precision.self.confidence
+        const z = priors.beliefs.self.confidence
+        const r = precisionToVariance(priors.precision.self.confidence)
+        const B = p.priors.beliefs.self.confidence
+        const τ = p.priors.precision.self.confidence
         const up = bayesUpdate(B, τ, z, r + JITTER)
         p.priors.beliefs.self.confidence   = up.mu
         p.priors.precision.self.confidence = up.tau
       }
       // information channel (actor → other)
       {
-        const z  = priors.beliefs.self.information
-        const r  = precisionToVariance(priors.precision.self.information)
-        const B  = p.priors.beliefs.self.information
-        const τ  = p.priors.precision.self.information
+        const z = priors.beliefs.self.information
+        const r = precisionToVariance(priors.precision.self.information)
+        const B = p.priors.beliefs.self.information
+        const τ = p.priors.precision.self.information
         const up = bayesUpdate(B, τ, z, r + JITTER)
-        p.priors.beliefs.self.information   = up.mu
+        p.priors.beliefs.self.information = up.mu
         p.priors.precision.self.information = up.tau
       }
     }
@@ -86,80 +106,110 @@ const instigate = (priors, id) => {
   return priors
 }
 
-// OBSERVE: actor looks at other’s *information* to update own information
+// OBSERVE: actor looks at other’s information to update own information
 const observe = (priors, id) => {
-  const other = players.find(p => p.id !== id).priors
-
-  const z  = other.beliefs.self.information
-  const r  = precisionToVariance(other.precision.self.information)
-  const B  = priors.beliefs.self.information
-  const τ  = priors.precision.self.information
-
+  const pool = players.filter(p => p.id !== id)
+  const other = pool[Math.floor(Math.random() * pool.length)].priors
+  const z = other.beliefs.self.information
+  const r = precisionToVariance(other.precision.self.information)
+  const B = priors.beliefs.self.information
+  const τ = priors.precision.self.information
   const up = bayesUpdate(B, τ, z, r + JITTER)
-  priors.beliefs.self.information   = up.mu
+  priors.beliefs.self.information = up.mu
   priors.precision.self.information = up.tau
-
   return priors
 }
 
-// RECEIVE: actor absorbs other’s *confidence* to update own confidence
+// RECEIVE: actor absorbs other’s confidence to update own confidence
 const receive = (priors, id) => {
-  const other = players.find(p => p.id !== id).priors
+  const pool = players.filter(p => p.id !== id)
+  const other = pool[Math.floor(Math.random() * pool.length)].priors
   const z = other.beliefs.self.confidence
   const r = precisionToVariance(other.precision.self.confidence)
   const B = priors.beliefs.self.confidence
   const τ = priors.precision.self.confidence
-
   const up = bayesUpdate(B, τ, z, r + JITTER)
   priors.beliefs.self.confidence = up.mu
   priors.precision.self.confidence = up.tau
-
   return priors
 }
 
 const getLikelihood = (priors, id) => {
   {
-    const cTU = timeUpdate(priors.beliefs.self.confidence,  priors.precision.self.confidence)
-    const iTU = timeUpdate(priors.beliefs.self.information, priors.precision.self.information)
-    priors.beliefs.self.confidence = cTU.mu
-    priors.precision.self.confidence = cTU.tau
-    priors.beliefs.self.information = iTU.mu
-    priors.precision.self.information = iTU.tau
+    // Precision reset thresholds
+    const PRECISION_RESET_THRESHOLD = 100
+    const RESET_PRECISION_MIN = 2
+    const RESET_PRECISION_RANGE = 3
+
+    // Precision decay factors
+    const SELF_PRECISION_DECAY = 0.8
+    const OTHER_PRECISION_DECAY = 0.9
+    const MAX_PRECISION_CAP = 20
+
+    if (priors.precision.self.confidence > PRECISION_RESET_THRESHOLD || priors.precision.self.information > PRECISION_RESET_THRESHOLD) {
+      priors.precision.self.confidence = RESET_PRECISION_MIN + RESET_PRECISION_RANGE * Math.random()
+      priors.precision.self.information = RESET_PRECISION_MIN + RESET_PRECISION_RANGE * Math.random()
+      console.log(`RESET: Player ${id} precision was too high`)
+    }
+
+    priors.precision.self.confidence *= SELF_PRECISION_DECAY
+    priors.precision.self.information *= SELF_PRECISION_DECAY
+    priors.precision.other.confidence *= OTHER_PRECISION_DECAY
+    priors.precision.other.information *= OTHER_PRECISION_DECAY
+
+    priors.precision.self.confidence = Math.min(MAX_PRECISION_CAP, priors.precision.self.confidence)
+    priors.precision.self.information = Math.min(MAX_PRECISION_CAP, priors.precision.self.information)
+    priors.precision.other.confidence = Math.min(MAX_PRECISION_CAP, priors.precision.other.confidence) 
+    priors.precision.other.information = Math.min(MAX_PRECISION_CAP, priors.precision.other.information)
   }
 
+  // Behavioral quadrant scaling factors
+  const CONFIDENCE_SCALING_FACTORS = [1.1, 1.0, 0.95, 0.9] // boost low confidence, reduce high confidence
+
+  priors = applyCenterDynamics(priors, { applyTo: ['information'], kick: true })
+  priors = maybeImpulse(priors)
+
   for (let i = 0; i < BEHAVIORAL_QUADRANTS.length; i++) {
-    const b = BEHAVIORAL_QUADRANTS[i]
-    if (priors.beliefs.self.confidence < b[1]) {
-      const scale = (0.9 + 0.1 * Math.random()) * b[1]
-      priors.beliefs.self.information = clamp01(priors.beliefs.self.information * scale)
+    const [lower, upper] = BEHAVIORAL_QUADRANTS[i]
+    if (priors.beliefs.self.confidence >= lower && priors.beliefs.self.confidence < upper) {
+      priors.beliefs.self.information = clamp(priors.beliefs.self.information * CONFIDENCE_SCALING_FACTORS[i])
       break
     }
   }
 
-  if ((priors.beliefs.self.information < 0.25 ||
-       priors.beliefs.self.information > 0.75) && Math.random() >= 0.25) {
-    return receive(priors, id)
-  }
+  const infoMu = priors.beliefs.self.information
+  const infoTau = priors.precision.self.information
+  const confTau = priors.precision.self.confidence
 
-  if (priors.beliefs.self.information < 0.75 && Math.random() >= 0.75) {
-    return instigate(priors, id)
-  }
-
-  return observe(priors, id)
+  const action = chooseAction(infoMu, infoTau, confTau)
+  if (action === 'observe') return observe(priors, id)
+  if (action === 'instigate') return instigate(priors, id)
+  return receive(priors, id)
 }
 
 let round = 1
-console.log(`Player count: ${players.length}, rounds: infinite`)
+
+const snapshotLine = (p) => {
+  const st = getStatus(p)
+  return `P${p.id}:\tConf: μ ${+p.priors.beliefs.self.confidence.toFixed(2)}, τ ${p.priors.precision.self.confidence.toFixed(2)}\n` +
+  `\tInfo: μ ${p.priors.beliefs.self.information.toFixed(2)}, τ ${p.priors.precision.self.information.toFixed(2)}\tStatus: ${st.tags.join(',')}\n`
+}
 
 const updateRound = () => {
   console.log(`\nRound ${round}\n`)
   players.forEach(p => {
     p.priors = getLikelihood(p.priors, p.id)
-    const output = `P${p.id}:\tConfidence: mu ${+p.priors.beliefs.self.confidence.toFixed(3)} / tau ${+p.priors.precision.self.confidence.toFixed(2)}\n\tInformation: mu ${+p.priors.beliefs.self.information.toFixed(3)} / tau ${+p.priors.precision.self.information.toFixed(2)}`
-    console.log(output)
+    console.log(snapshotLine(p))
   })
   round++
 }
 
- updateRound()
- setInterval(updateRound, 2000)
+const start = () => {
+  for (let i = 0; i < 10; i++) { players.push({ id: i, priors: getPriors() })}
+  console.log(`Player count: ${players.length}, rounds: infinite`)
+
+  updateRound()
+  setInterval(updateRound, 1000)
+}
+
+start()

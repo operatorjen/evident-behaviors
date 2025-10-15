@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "author": "operatorjen",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   }
