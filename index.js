@@ -18,7 +18,6 @@ const bayesUpdate = (mu, tau, z, r) => {
   const tauPost = tau + invR
   const PRECISION_DECAY = 0.95
   const MAX_PRECISION = 50
-  // Add precision damping to prevent runaway growth
   const dampedTau = Math.min(tauPost * PRECISION_DECAY, MAX_PRECISION)
   const muPost = (tau * mu + invR * z) / tauPost
   return { mu: clamp(muPost), tau: dampedTau }
@@ -32,11 +31,11 @@ const chooseAction = (infoMu, infoTau, confTau) => {
   const UNCERTAINTY_OBSERVE_BONUS = 0.1
   const UNCERTAINTY_INSTIGATE_PENALTY = 0.15
   const RECEIVE_MINIMUM = 0.15
-  const wExt = observeWeight(infoMu) // more extreme info => more observe
-  const speakG = speakGateFromTau(confTau) // more certain => more likely to speak
+  const wExt = observeWeight(infoMu)
+  const speakG = speakGateFromTau(confTau)
 
   let pObs = OBSERVE_BASE + OBSERVE_EXTREME_BOOST * wExt
-  let pInst = INSTIGATE_BASE + INSTIGATE_CONFIDENCE_BOOST * speakG * (1 - wExt) // speak mostly in the middle if certain
+  let pInst = INSTIGATE_BASE + INSTIGATE_CONFIDENCE_BOOST * speakG * (1 - wExt)
 
   const wob = Math.min(1, wobble(infoTau))
   pObs = clamp(pObs + UNCERTAINTY_OBSERVE_BONUS * wob)
@@ -49,7 +48,7 @@ const chooseAction = (infoMu, infoTau, confTau) => {
   if (sum > 1) { pObs /= sum; pInst /= sum; pRecv /= sum }
 
   const r = Math.random()
-  return r < pObs ? 'observe' : r < pObs + pInst ? 'instigate' : 'receive'
+  return r < pObs ? 'observing' : r < pObs + pInst ? 'instigating' : 'receiving'
 }
 
 const getPriors = () => {
@@ -136,12 +135,10 @@ const receive = (priors, id) => {
 
 const getLikelihood = (priors, id) => {
   {
-    // Precision reset thresholds
     const PRECISION_RESET_THRESHOLD = 100
     const RESET_PRECISION_MIN = 2
     const RESET_PRECISION_RANGE = 3
 
-    // Precision decay factors
     const SELF_PRECISION_DECAY = 0.8
     const OTHER_PRECISION_DECAY = 0.9
     const MAX_PRECISION_CAP = 20
@@ -163,8 +160,7 @@ const getLikelihood = (priors, id) => {
     priors.precision.other.information = Math.min(MAX_PRECISION_CAP, priors.precision.other.information)
   }
 
-  // Behavioral quadrant scaling factors
-  const CONFIDENCE_SCALING_FACTORS = [1.1, 1.0, 0.95, 0.9] // boost low confidence, reduce high confidence
+  const CONFIDENCE_SCALING_FACTORS = [1.1, 1.0, 0.95, 0.9]
 
   priors = applyCenterDynamics(priors, { applyTo: ['information'], kick: true })
   priors = maybeImpulse(priors)
@@ -182,8 +178,8 @@ const getLikelihood = (priors, id) => {
   const confTau = priors.precision.self.confidence
 
   const action = chooseAction(infoMu, infoTau, confTau)
-  if (action === 'observe') return observe(priors, id)
-  if (action === 'instigate') return instigate(priors, id)
+  if (action === 'observing') return observe(priors, id)
+  if (action === 'instigating') return instigate(priors, id)
   return receive(priors, id)
 }
 
@@ -205,11 +201,11 @@ const updateRound = () => {
 }
 
 const start = () => {
-  for (let i = 0; i < 10; i++) { players.push({ id: i, priors: getPriors() })}
+  for (let i = 0; i < (Math.floor(Math.random() * 15) + 2); i++) { players.push({ id: i, priors: getPriors() })}
   console.log(`Player count: ${players.length}, rounds: infinite`)
 
   updateRound()
-  setInterval(updateRound, 1000)
+  setInterval(updateRound, Math.floor(Math.random() * 1000 * 3) + 500)
 }
 
 start()
