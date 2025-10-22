@@ -4,9 +4,9 @@
   "description": "Simulating confidence and information through behavior dynamics",
   "license": "AGPL-3.0-only",
   "author": "operatorjen",
-  "main": "index.js",
+  "main": "index.mjs",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node generate.mjs"
   }
 }

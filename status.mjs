@@ -1,4 +1,4 @@
-import { observeWeight, speakGateFromTau, wobble } from "./utils.js"
+import { observeWeight, speakGateFromTau, wobble } from "./utils.mjs"
 
 export const getStatus = (p) => {
   const OBSERVER_MIN_INTENT = 0.25

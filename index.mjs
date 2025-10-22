@@ -1,5 +1,6 @@
-import { getStatus } from './status.js'
-import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight, precisionToVariance, speakGateFromTau, wobble } from './utils.js'
+import { getStatus } from './status.mjs'
+import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight, 
+  precisionToVariance, speakGateFromTau, wobble } from './utils.mjs'
 
 const BEHAVIORAL_QUADRANTS = [
   [0, 0.25],
@@ -7,8 +8,6 @@ const BEHAVIORAL_QUADRANTS = [
   [0.5, 0.75],
   [0.75, 1.0]
 ]
-
-let players = []
 
 const JITTER = Math.random() * 0.02
 console.log('New JITTER setting for rounds:', JITTER)
@@ -51,7 +50,7 @@ const chooseAction = (infoMu, infoTau, confTau) => {
   return r < pObs ? 'observing' : r < pObs + pInst ? 'instigating' : 'receiving'
 }
 
-const getPriors = () => {
+export const generatePriors = () => {
   return {
     beliefs: {
       self: {
@@ -77,7 +76,7 @@ const getPriors = () => {
 }
 
 // INSTIGATE: actor broadcasts; others update (confidence→confidence, information→information)
-const instigate = (priors, id) => {
+const instigate = (players, priors, id) => {
   players.forEach(p => {
     if (p.id !== id) {
       // confidence channel (actor → other)
@@ -106,7 +105,7 @@ const instigate = (priors, id) => {
 }
 
 // OBSERVE: actor looks at other’s information to update own information
-const observe = (priors, id) => {
+const observe = (players, priors, id) => {
   const pool = players.filter(p => p.id !== id)
   const other = pool[Math.floor(Math.random() * pool.length)].priors
   const z = other.beliefs.self.information
@@ -120,7 +119,7 @@ const observe = (priors, id) => {
 }
 
 // RECEIVE: actor absorbs other’s confidence to update own confidence
-const receive = (priors, id) => {
+const receive = (players, priors, id) => {
   const pool = players.filter(p => p.id !== id)
   const other = pool[Math.floor(Math.random() * pool.length)].priors
   const z = other.beliefs.self.confidence
@@ -133,7 +132,7 @@ const receive = (priors, id) => {
   return priors
 }
 
-const getLikelihood = (priors, id) => {
+const getLikelihood = (players, priors, id) => {
   {
     const PRECISION_RESET_THRESHOLD = 100
     const RESET_PRECISION_MIN = 2
@@ -178,9 +177,9 @@ const getLikelihood = (priors, id) => {
   const confTau = priors.precision.self.confidence
 
   const action = chooseAction(infoMu, infoTau, confTau)
-  if (action === 'observing') return observe(priors, id)
-  if (action === 'instigating') return instigate(priors, id)
-  return receive(priors, id)
+  if (action === 'observing') return observe(players, priors, id)
+  if (action === 'instigating') return instigate(players, priors, id)
+  return receive(players, priors, id)
 }
 
 let round = 1
@@ -188,24 +187,15 @@ let round = 1
 const snapshotLine = (p) => {
   const st = getStatus(p)
   return `P${p.id}:\tConf: μ ${+p.priors.beliefs.self.confidence.toFixed(2)}, τ ${p.priors.precision.self.confidence.toFixed(2)}\n` +
-  `\tInfo: μ ${p.priors.beliefs.self.information.toFixed(2)}, τ ${p.priors.precision.self.information.toFixed(2)}\tStatus: ${st.tags.join(',')}\n`
+  `\tInfo: μ ${p.priors.beliefs.self.information.toFixed(2)}, τ ${p.priors.precision.self.information.toFixed(2)}\tStatus: ${st.tags.join(',')} - ${st.line}\n`
 }
 
-const updateRound = () => {
+export const updateRound = (players) => {
   console.log(`\nRound ${round}\n`)
   players.forEach(p => {
-    p.priors = getLikelihood(p.priors, p.id)
+    p.priors = getLikelihood(players, p.priors, p.id)
     console.log(snapshotLine(p))
   })
   round++
+  return players
 }
-
-const start = () => {
-  for (let i = 0; i < (Math.floor(Math.random() * 15) + 2); i++) { players.push({ id: i, priors: getPriors() })}
-  console.log(`Player count: ${players.length}, rounds: infinite`)
-
-  updateRound()
-  setInterval(updateRound, Math.floor(Math.random() * 1000 * 3) + 500)
-}
-
-start()
