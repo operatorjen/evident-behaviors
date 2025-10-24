@@ -192,15 +192,16 @@ const snapshotLine = async (p) => {
   const current = st.tags.join(',')
 
   if (current === 'instigating') {
-    const { message, base } = await generateSignal()
-    return `Player ${p.id} says "${message}" in base${base}`
+    const message = await generateSignal()
+    return `Player says ${message}!`
   } else {
-    return `Player ${p.id} is ${current}`
+    return `P${p.id}:\tConf: μ ${+p.priors.beliefs.self.confidence.toFixed(2)}, τ ${p.priors.precision.self.confidence.toFixed(2)}\n` +
+    `\tInfo: μ ${p.priors.beliefs.self.information.toFixed(2)}, τ ${p.priors.precision.self.information.toFixed(2)}, Status: ${current}\n`
   }
 }
 
 export const updateRound = async (players) => {
-  console.log(`\nCycle ${round}\n`)
+  console.log(`\nRound ${round}\n`)
   for (const p of players) {
     p.priors = getLikelihood(players, p.priors, p.id)
     console.log(await snapshotLine(p))

@@ -6,7 +6,8 @@ const start = async () => {
     players.push({ id: i, priors: generatePriors()
   })}
 
-  console.log(`Player count: ${players.length}`)
+  console.log(`Player count: ${players.length}, rounds: infinite`)
+
 
   setInterval(async () => {
     players = await updateRound(players)

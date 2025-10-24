@@ -6,10 +6,10 @@
   "author": "operatorjen",
   "main": "index.mjs",
   "type": "module",
-  "scripts": {
-    "start": "node generate.mjs"
-  },
   "dependencies": {
     "on-off": "github:operatorjen/on-off"
+  },
+  "scripts": {
+    "start": "node generate.mjs"
   }
 }
