@@ -1,6 +1,7 @@
 import { getStatus } from './status.mjs'
-import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight, 
+import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight,
   precisionToVariance, speakGateFromTau, wobble } from './utils.mjs'
+import { generateSignal } from './wordbag.mjs'
 
 const BEHAVIORAL_QUADRANTS = [
   [0, 0.25],
@@ -178,24 +179,33 @@ const getLikelihood = (players, priors, id) => {
 
   const action = chooseAction(infoMu, infoTau, confTau)
   if (action === 'observing') return observe(players, priors, id)
-  if (action === 'instigating') return instigate(players, priors, id)
+  if (action === 'instigating') {
+    return instigate(players, priors, id)
+  }
   return receive(players, priors, id)
 }
 
 let round = 1
 
-const snapshotLine = (p) => {
+const snapshotLine = async (p) => {
   const st = getStatus(p)
-  return `P${p.id}:\tConf: μ ${+p.priors.beliefs.self.confidence.toFixed(2)}, τ ${p.priors.precision.self.confidence.toFixed(2)}\n` +
-  `\tInfo: μ ${p.priors.beliefs.self.information.toFixed(2)}, τ ${p.priors.precision.self.information.toFixed(2)}\tStatus: ${st.tags.join(',')} - ${st.line}\n`
+  const current = st.tags.join(',')
+
+  if (current === 'instigating') {
+    const message = await generateSignal()
+    return `Player says ${message}!`
+  } else {
+    return `P${p.id}:\tConf: μ ${+p.priors.beliefs.self.confidence.toFixed(2)}, τ ${p.priors.precision.self.confidence.toFixed(2)}\n` +
+    `\tInfo: μ ${p.priors.beliefs.self.information.toFixed(2)}, τ ${p.priors.precision.self.information.toFixed(2)}, Status: ${current}\n`
+  }
 }
 
-export const updateRound = (players) => {
+export const updateRound = async (players) => {
   console.log(`\nRound ${round}\n`)
-  players.forEach(p => {
+  for (const p of players) {
     p.priors = getLikelihood(players, p.priors, p.id)
-    console.log(snapshotLine(p))
-  })
+    console.log(await snapshotLine(p))
+  }
   round++
   return players
 }

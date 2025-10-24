@@ -1,3 +1,4 @@
+
 import { observeWeight, speakGateFromTau, wobble } from "./utils.mjs"
 
 export const getStatus = (p) => {
@@ -16,15 +17,5 @@ export const getStatus = (p) => {
 
   const tags = [role]
 
-  const line = (() => {
-    if (role === 'instigating') {
-      return 'leans to speak; likely to push others toward current stance'
-    }
-    if (role === 'observing') {
-      return 'leans to watch; likely to adapt based on others'
-    }
-    return 'between speaking and listening'
-  })()
-
-  return { tags, line }
+  return { tags }
 }
