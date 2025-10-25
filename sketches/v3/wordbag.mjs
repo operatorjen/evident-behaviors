@@ -45,35 +45,3 @@ export const getWordsForBase = (base) => {
   
   return words
 }
-  
-export const generateSignal = async () => {
-  const protocol = new OnOff()
-  const base = Math.floor(Math.random() * 35) + 2
-  const chars = (getWord(base)).split('')
-  
-  let mappings = []
-  
-  for (const char of chars) {
-    const c = protocol.base36ToBaseX(base, char)
-    if (c) mappings.push(c)
-  }
-
-  let hour = 0
-  for (const mapping of mappings) {
-    const mi = mapping.split('')
-    for (let m of mi) {
-      const baseDigits = protocol.getBaseDigits(base)
-      const digitValue = baseDigits.indexOf(m)
-      
-      if (digitValue === -1) {
-        continue
-      }
-      
-      if (hour > 23) break
-      await protocol.decodeSignal(base, digitValue + 1, hour++)
-    }
-  }
-
-  const message = await protocol.reconstructMessage(base, 0, hour - 1)
-  return { message, base }
-}

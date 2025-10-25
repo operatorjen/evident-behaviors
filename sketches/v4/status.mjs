@@ -1,4 +1,4 @@
-import { Timeless } from 'timeless'
+import OnOff from 'on-off'
 import { WordSelector } from './word-selector.mjs'
 import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight,
   precisionToVariance, speakGateFromTau, wobble, BEHAVIORAL_QUADRANTS } from './utils.mjs'
@@ -104,9 +104,11 @@ const chooseAction = (infoMu, infoTau, confTau) => {
   return r < pObs ? 'observing' : r < pObs + pInst ? 'instigating' : 'receiving'
 }
 
+// INSTIGATE: actor broadcasts; others update (confidence→confidence, information→information)
 export const instigate = (players, priors, id) => {
   players.forEach(p => {
     if (p.id !== id) {
+      // confidence channel (actor → other)
       {
         const z = priors.beliefs.self.confidence
         const r = precisionToVariance(priors.precision.self.confidence)
@@ -116,6 +118,7 @@ export const instigate = (players, priors, id) => {
         p.priors.beliefs.self.confidence   = up.mu
         p.priors.precision.self.confidence = up.tau
       }
+      // information channel (actor → other)
       {
         const z = priors.beliefs.self.information
         const r = precisionToVariance(priors.precision.self.information)
@@ -130,6 +133,7 @@ export const instigate = (players, priors, id) => {
   return priors
 }
 
+// OBSERVE: actor looks at other’s information to update own information
 export const observe = (players, priors, id) => {
   const pool = players.filter(p => p.id !== id)
   const other = pool[Math.floor(Math.random() * pool.length)].priors
@@ -143,6 +147,7 @@ export const observe = (players, priors, id) => {
   return priors
 }
 
+// RECEIVE: actor absorbs other’s confidence to update own confidence
 export const receive = (players, priors, id) => {
   const pool = players.filter(p => p.id !== id)
   const other = pool[Math.floor(Math.random() * pool.length)].priors
@@ -161,10 +166,36 @@ export const getWord = (base = 3, behaviorState = 'observing-mid', agentState = 
 }
 
 const generateSignal = async (behaviorState, agentState = {}) => {
-  const enc = new Timeless()
-  enc.setSymbols(['🫠','🤯','🧐'])
-  const word = (getWord(enc.base.length, behaviorState, agentState))
-  return enc.decode(word)
+  const protocol = new OnOff()
+  const base = Math.floor(Math.random() * 35) + 2
+  
+  const chars = (getWord(base, behaviorState, agentState)).split('')
+  
+  let mappings = []
+  
+  for (const char of chars) {
+    const c = protocol.base36ToBaseX(base, char)
+    if (c) mappings.push(c)
+  }
+
+  let hour = 0
+  for (const mapping of mappings) {
+    const mi = mapping.split('')
+    for (let m of mi) {
+      const baseDigits = protocol.getBaseDigits(base)
+      const digitValue = baseDigits.indexOf(m)
+      
+      if (digitValue === -1) {
+        continue
+      }
+      
+      if (hour > 23) break
+      await protocol.decodeSignal(base, digitValue + 1, hour++)
+    }
+  }
+
+  const message = await protocol.reconstructMessage(base, 0, hour - 1)
+  return { message, base }
 }
 
 export const getLikelihood = (players, priors, id) => {
@@ -223,9 +254,9 @@ export const snapshotLine = async (p) => {
   const st = getStatus(p)
   const current = st.tags.join(',')
 
-  const message = await generateSignal(current, st.agentState)
+  const { message, base } = await generateSignal(current, st.agentState)
   
   let action = 'thinks '
   if (current.includes('instigating')) action = 'says '
-  return `Player ${p.id} ${action} "${message}" (uncertainty: ${st.agentState.uncertainty.toFixed(2)}, urgency: ${st.agentState.urgency.toFixed(2)})`
+  return `Player ${p.id} ${action} "${message}" in base${base} (uncertainty: ${st.agentState.uncertainty.toFixed(2)}, urgency: ${st.agentState.urgency.toFixed(2)})`
 }

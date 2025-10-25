@@ -1,0 +1,140 @@
+export const WORD_SETS = {
+  OBSERVING: {
+    CONFIDENT_CALM: {
+      2: ['HM', 'AH'],
+      3: ['SEE', 'SPY', 'EYE', 'LOG', 'MAP'],
+      4: ['SCAN', 'NOTE', 'READ', 'VIEW', 'LOOK'],
+      5: ['WATCH', 'STUDY', 'PROBE', 'SIGHT', 'GAZER'],
+      6: ['REVIEW', 'ASSESS', 'VERIFY', 'SURVEY', 'SEARCH'],
+      7: ['INSPECT', 'OBSERVE', 'EXAMINE', 'MONITOR', 'SURVEIL'],
+      8: ['SCRUTINY', 'OVERVIEW', 'WATCHFUL', 'OBSERVER', 'SURVEYOR'],
+      9: ['OBSERVING', 'ATTENTIVE', 'VIGILANCE', 'SURVEYING'],
+      10: ['MONITORING', 'INSPECTION', 'SCRUTINIES', 'SURVEILLER', 'WATCHTOWER']
+    },
+    UNCERTAIN_CALM: {
+      2: ['UH', 'UM', 'ER', 'EH', 'MM'],
+      3: ['MAY', 'HMM', 'GEE'],
+      4: ['MULL', 'MUSE', 'WARY'],
+      5: ['MAYBE', 'THINK', 'WEIGH', 'GUESS', 'MUSES'],
+      6: ['UNSURE', 'PUZZLE', 'WONDER', 'PONDER', 'DEBATE'],
+      7: ['UNCLEAR', 'MULLING', 'REFLECT', 'PUZZLED', 'WAVERER'],
+      8: ['RUMINATE', 'QUESTION', 'HESITANT', 'DOUBTFUL', 'CONSIDER'],
+      9: ['SPECULATE', 'TENTATIVE', 'AMBIGUITY', 'UNCERTAIN', 'HESITANCE'],
+      10: ['DELIBERATE', 'RUMINATION', 'QUESTIONED', 'PONDERINGS', 'HESITATION']
+    },
+    CONFIDENT_URGENT: {
+      2: ['GO', 'ON', 'UP', 'OK', 'DO'],
+      3: ['AIM', 'TAG', 'PIN', 'FIX', 'GET'],
+      4: ['LOCK', 'MARK', 'FLAG', 'FIND', 'SPOT'],
+      5: ['TRACE', 'ALIGN', 'AIMED', 'LOCKS', 'FOUND'],
+      6: ['TARGET', 'LOCATE', 'TRACER', 'FINDER', 'VERIFY'],
+      7: ['TRACKER', 'LOCATOR', 'CAPTURE', 'FLAGGED', 'SEEKING'],
+      8: ['TRACKING', 'TARGETED', 'SPOTTING', 'LOCKDOWN', 'ACQUIRED'],
+      9: ['TARGETING', 'ACQUIRING', 'PINPOINTS', 'DISCERNER'],
+      10: ['PINPOINTED', 'INTERCEPTS', 'VERIFIABLE', 'CONFIRMING']
+    },
+    UNCERTAIN_URGENT: {
+      2: ['OH', 'AH', 'OW', 'NO', 'EE'],
+      3: ['PAN', 'EEK', 'ACK', 'BAD', 'ILL'],
+      4: ['FEAR', 'WARN', 'RISK', 'DIRE', 'HELP'],
+      5: ['ALERT', 'PANIC', 'DREAD', 'FEARS', 'ALARM'],
+      6: ['HAZARD', 'URGENT', 'ALARMS', 'RISKED', 'FEARED'],
+      7: ['WARNING', 'HAZARDS', 'FEARFUL', 'ALARMED', 'RISKING'],
+      8: ['EMERGENT', 'CRITICAL', 'PANICKED', 'DISTRESS', 'TERRIBLE'],
+      9: ['PRECARITY', 'RISKINESS', 'DANGEROUS', 'HAZARDOUS', 'THREATENS'],
+      10: ['PRECARIOUS', 'VULNERABLE', 'THREATENED', 'DISTRAUGHT']
+    }
+  },
+  RECEIVING: {
+    CONFIDENT_CALM: {
+      2: ['OK', 'AY', 'YA', 'YO', 'SI'],
+      3: ['YES', 'YEP', 'YUP', 'AOK', 'AYE'],
+      4: ['COPY', 'FINE', 'GOOD', 'TRUE', 'FAIR'],
+      5: ['AGREE', 'CLEAR', 'VALID'],
+      6: ['AGREED', 'ACCEDE', 'ASSENT', 'AVOUCH', 'ADOPTS'],
+      7: ['APPROVE', 'CONSENT', 'AFFIRMS', 'ACCEPTS', 'ASSURES'],
+      8: ['ASSENTED', 'APPROVED', 'VALIDATE', 'ACCEPTED', 'ENDORSED'],
+      9: ['CONFIRMED', 'ASSENTING', 'SANCTIONS', 'APPROVING', 'VALIDATED'],
+      10: ['VALIDATION', 'ACCREDITED', 'ACCEPTANCE']
+    },
+    UNCERTAIN_CALM: {
+      2: ['UH', 'UM', 'ER', 'EH', 'MM'],
+      3: ['MAY', 'HMM', 'IDK', 'GEE', 'PER'],
+      4: ['WARY', 'MULL', 'MUSE'],
+      5: ['MAYBE', 'THINK', 'WEIGH', 'MUSES', 'GUESS'],
+      6: ['UNSURE', 'PAUSES', 'DECIDE', 'DOUBTS', 'PONDER'],
+      7: ['UNCLEAR', 'MULLING', 'REFLECT', 'WONDERS', 'WAVERED'],
+      8: ['RUMINATE', 'QUESTION', 'HESITANT', 'DOUBTFUL', 'CONSIDER'],
+      9: ['SPECULATE', 'UNDECIDED', 'HESITANCE', 'AMBIGUITY', 'UNCERTAIN'],
+      10: ['DELIBERATE', 'RUMINATION', 'UNSURENESS', 'QUESTIONED', 'PONDERINGS']
+    },
+    CONFIDENT_URGENT: {
+      2: ['GO', 'OK', 'ON', 'UP', 'DO'],
+      3: ['NOW', 'RUN', 'ZIP', 'HOP', 'ACT'],
+      4: ['RUSH', 'FAST', 'MOVE', 'HAST'],
+      5: ['QUICK', 'SWIFT', 'PRIOR', 'HURRY'],
+      6: ['URGENT', 'PROMPT', 'SPEEDY', 'HASTEN', 'DIRECT'],
+      7: ['SWIFTLY', 'RAPIDLY', 'HURRIED', 'SPEEDUP'],
+      8: ['PRIORITY', 'EXPEDITE', 'PRESSURE', 'PROMPTED', 'SPEEDUPS'],
+      9: ['IMMEDIACY', 'ESCALATED', 'EXPEDITED', 'FASTTRACK', 'HASTINESS'],
+      10: ['PRIORITIZE', 'ESCALATION', 'EXPEDITING', 'FASTTRACKS']
+    },
+    UNCERTAIN_URGENT: {
+      2: ['AY', 'AH', 'OH', 'OW', 'EE'],
+      3: ['SOS', 'AID', 'EEK', 'ACK', 'AHH'],
+      4: ['AIDE', 'HELP', 'SAVE', 'YELP', 'WEEP'],
+      5: ['ALERT', 'ANGST', 'WORRY', 'FEARS', 'PANIC'],
+      6: ['PANICS', 'ALARMS', 'TENSED', 'SHIVER'],
+      7: ['NEEDING', 'WORRIED', 'FRAZZLE', 'HELPING', 'ANXIOUS'],
+      8: ['PANICKED', 'ALARMING', 'DISTRESS', 'HELPLESS', 'AGITATED'],
+      9: ['EMERGENCY', 'DESPERATE', 'ANXIETIES', 'TREMBLING', 'FEARFULLY'],
+      10: ['DISTRAUGHT', 'HELPLESSLY']
+    }
+  },
+  INSTIGATING: {
+    CONFIDENT_CALM: {
+      2: ['HI', 'YO', 'AY', 'GO', 'DO'],
+      3: ['ASK', 'SAY', 'ACT', 'BID', 'AIM'],
+      4: ['LEAD', 'PLAN', 'MOVE', 'SEEK', 'CALL'],
+      5: ['START', 'BEGIN', 'OFFER', 'SPEAK', 'DRIVE'],
+      6: ['LAUNCH', 'EMBARK', 'PROMPT', 'ENABLE', 'DIRECT'],
+      7: ['PROPOSE', 'SUGGEST', 'ENACTED', 'ADVANCE', 'PROMOTE'],
+      8: ['PROPOSAL', 'INITIATE', 'OFFERING', 'LAUNCHER', 'ACTIVATE'],
+      9: ['PROPOSING', 'PROMOTING', 'ADVANCING', 'INITIATOR', 'ENCOURAGE'],
+      10: ['INITIATION', 'FACILITATE', 'SUGGESTION', 'CATALYZING', 'ACTIVATING']
+    },
+    UNCERTAIN_CALM: {
+      2: ['IF', 'OR', 'SO', 'UH', 'UM'],
+      3: ['ASK', 'BEG', 'TRY', 'MAY', 'AIM'],
+      4: ['BEGS', 'ASKS', 'PLEA', 'HOPE', 'PRAY'],
+      5: ['PLEAD', 'QUERY', 'ASKER', 'PRAYS', 'OFFER'],
+      6: ['APPEAL', 'SEEKER', 'ASKING', 'BEGGAR', 'INSIST'],
+      7: ['REQUEST', 'APPEALS', 'ENTREAT', 'PLEADED', 'PRAYERS'],
+      8: ['PETITION', 'PLEADING', 'QUESTION', 'APPEALED', 'REQUESTS'],
+      9: ['REQUESTED', 'PETITIONS', 'APPEALING', 'PROPOSING'],
+      10: ['SUPPLICANT', 'REQUESTING', 'ENTREATING', 'PETITIONER', 'QUESTIONED']
+    },
+    CONFIDENT_URGENT: {
+      2: ['GO', 'DO', 'UP', 'ON', 'TO'],
+      3: ['RUN', 'ACT', 'NOW', 'HIE', 'ZIP', 'YAH'],
+      4: ['PUSH', 'MOVE', 'HAST', 'SPUR', 'URGE'],
+      5: ['FORCE', 'ORDER', 'DRIVE', 'SPEED'],
+      6: ['DIRECT', 'HASTEN', 'PROMPT', 'ENABLE', 'ORDERS'],
+      7: ['COMMAND', 'ORDERED', 'DEMANDS', 'FORCING', 'HURRIED'],
+      8: ['MANDATES', 'INSTRUCT', 'OVERRULE', 'CATALYZE', 'ACTIVATE'],
+      9: ['IMPERIOUS', 'COMMANDED', 'DIRECTING', 'DEMANDING', 'FASTTRACK'],
+      10: ['DICTATIONS', 'COMPELLING', 'OVERRULING']
+    },
+    UNCERTAIN_URGENT: {
+      2: ['AY', 'AH', 'OH', 'OW'],
+      3: ['CRY', 'PLE', 'YEL', 'AID', 'SOS', 'GRR'],
+      4: ['HELP', 'BEGS', 'PLEA', 'YELL', 'AIDS'],
+      5: ['PLEAD', 'URGES', 'CRIES', 'IMPEL', 'ASKED'],
+      6: ['BEGGED', 'APPEAL', 'URGENT', 'ASSIST', 'INSIST'],
+      7: ['PLEADED', 'APPEALS', 'IMPLORE', 'ENTREAT', 'ASSISTS'],
+      8: ['HELPLESS', 'PLEADING', 'IMPLORED', 'ASSISTER'],
+      9: ['DESPERATE', 'INTERCEDE', 'ASSISTING', 'ADVOCATES', 'SUPPORTER'],
+      10: ['SUPPLICANT', 'ASSISTANCE', 'INTERCEDER', 'IMPLORINGS', 'PLEADINGLY']
+    }
+  }
+}
