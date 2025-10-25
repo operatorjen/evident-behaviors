@@ -1,70 +1,17 @@
-import OnOff from 'on-off'
-import { WordSelector } from './word-selector.mjs'
+import { getStatus } from './status.mjs'
 import { applyCenterDynamics, clamp,  maybeImpulse, observeWeight,
-  precisionToVariance, speakGateFromTau, wobble, BEHAVIORAL_QUADRANTS } from './utils.mjs'
+  precisionToVariance, speakGateFromTau, wobble } from './utils.mjs'
+import { generateSignal } from './wordbag.mjs'
 
-const wordSelector = new WordSelector()
+const BEHAVIORAL_QUADRANTS = [
+  [0, 0.25],
+  [0.25, 0.5],
+  [0.5, 0.75],
+  [0.75, 1.0]
+]
+
 const JITTER = Math.random() * 0.02
 console.log('New JITTER setting for rounds:', JITTER)
-
-const getStatus = (p) => {
-  const OBSERVER_MIN_INTENT = 0.25
-  const INSTIGATOR_MIN_INTENT = 0.5
-  const cTau = p.priors.precision.self.confidence
-  const iMu = p.priors.beliefs.self.information
-  const iTau = p.priors.precision.self.information
-  
-  const speakIntent = speakGateFromTau(cTau) * (1 - observeWeight(iMu))
-  const watchIntent = observeWeight(iMu) * Math.min(1, wobble(iTau))
-  const uncertainty = 1 - (cTau / 20)
-  const urgency = Math.abs(iMu - 0.5) * 2
-  
-  let role
-
-  if (watchIntent > OBSERVER_MIN_INTENT && watchIntent > speakIntent) {
-    if (clamp(watchIntent) <= 0.25) {
-      role = 'observing-low'
-    } else if (clamp(watchIntent) <= 0.5) {
-      role = 'observing-mid'
-    } else if (clamp(watchIntent) <= 0.75) {
-      role = 'observing-high'
-    } else {
-      role = 'observing-peak'
-    }
-  } else if (speakIntent > INSTIGATOR_MIN_INTENT && speakIntent > watchIntent) {
-    if (clamp(speakIntent) <= 0.25) {
-      role = 'instigating-low'
-    } else if (clamp(speakIntent) <= 0.5) {
-      role = 'instigating-mid'
-    } else if (clamp(speakIntent) <= 0.75) {
-      role = 'instigating-high'
-    } else {
-      role = 'instigating-peak'
-    }
-  } else {
-    if (clamp(watchIntent) <= 0.25) {
-      role = 'receiving-low'
-    } else if (clamp(watchIntent) <= 0.5) {
-      role = 'receiving-mid'
-    } else if (clamp(watchIntent) <= 0.75) {
-      role = 'receiving-high'
-    } else {
-      role = 'receiving-peak'
-    }
-  }
-
-  const tags = [role]
-
-  return { 
-    tags, 
-    agentState: {
-      uncertainty: clamp(uncertainty),
-      urgency: clamp(urgency),
-      confidence: p.priors.beliefs.self.confidence,
-      information: p.priors.beliefs.self.information
-    }
-  }
-}
 
 const bayesUpdate = (mu, tau, z, r) => {
   const invR = 1 / r
@@ -104,8 +51,33 @@ const chooseAction = (infoMu, infoTau, confTau) => {
   return r < pObs ? 'observing' : r < pObs + pInst ? 'instigating' : 'receiving'
 }
 
+export const generatePriors = () => {
+  return {
+    beliefs: {
+      self: {
+        confidence: Math.random(),
+        information: Math.random()
+      },
+      other: {
+        confidence: Math.random(),
+        information: Math.random()
+      }
+    },
+    precision: {
+      self: {
+        confidence: 1 + 2 * Math.random(),
+        information: 1 + 2 * Math.random()
+      },
+      other: {
+        confidence: 1 + 2 * Math.random(),
+        information: 1 + 2 * Math.random()
+      }
+    }
+  }
+}
+
 // INSTIGATE: actor broadcasts; others update (confidence→confidence, information→information)
-export const instigate = (players, priors, id) => {
+const instigate = (players, priors, id) => {
   players.forEach(p => {
     if (p.id !== id) {
       // confidence channel (actor → other)
@@ -134,7 +106,7 @@ export const instigate = (players, priors, id) => {
 }
 
 // OBSERVE: actor looks at other’s information to update own information
-export const observe = (players, priors, id) => {
+const observe = (players, priors, id) => {
   const pool = players.filter(p => p.id !== id)
   const other = pool[Math.floor(Math.random() * pool.length)].priors
   const z = other.beliefs.self.information
@@ -148,7 +120,7 @@ export const observe = (players, priors, id) => {
 }
 
 // RECEIVE: actor absorbs other’s confidence to update own confidence
-export const receive = (players, priors, id) => {
+const receive = (players, priors, id) => {
   const pool = players.filter(p => p.id !== id)
   const other = pool[Math.floor(Math.random() * pool.length)].priors
   const z = other.beliefs.self.confidence
@@ -161,44 +133,7 @@ export const receive = (players, priors, id) => {
   return priors
 }
 
-export const getWord = (base = 3, behaviorState = 'observing-mid', agentState = {}) => {
-  return wordSelector.getWord(base, behaviorState, agentState)
-}
-
-const generateSignal = async (behaviorState, agentState = {}) => {
-  const protocol = new OnOff()
-  const base = Math.floor(Math.random() * 35) + 2
-  
-  const chars = (getWord(base, behaviorState, agentState)).split('')
-  
-  let mappings = []
-  
-  for (const char of chars) {
-    const c = protocol.base36ToBaseX(base, char)
-    if (c) mappings.push(c)
-  }
-
-  let hour = 0
-  for (const mapping of mappings) {
-    const mi = mapping.split('')
-    for (let m of mi) {
-      const baseDigits = protocol.getBaseDigits(base)
-      const digitValue = baseDigits.indexOf(m)
-      
-      if (digitValue === -1) {
-        continue
-      }
-      
-      if (hour > 23) break
-      await protocol.decodeSignal(base, digitValue + 1, hour++)
-    }
-  }
-
-  const message = await protocol.reconstructMessage(base, 0, hour - 1)
-  return { message, base }
-}
-
-export const getLikelihood = (players, priors, id) => {
+const getLikelihood = (players, priors, id) => {
   {
     const PRECISION_RESET_THRESHOLD = 100
     const RESET_PRECISION_MIN = 2
@@ -250,13 +185,26 @@ export const getLikelihood = (players, priors, id) => {
   return receive(players, priors, id)
 }
 
-export const snapshotLine = async (p) => {
+let round = 1
+
+const snapshotLine = async (p) => {
   const st = getStatus(p)
   const current = st.tags.join(',')
 
-  const { message, base } = await generateSignal(current, st.agentState)
-  
-  let action = 'thinks '
-  if (current.includes('instigating')) action = 'says '
-  return `Player ${p.id} ${action} "${message}" in base${base} (uncertainty: ${st.agentState.uncertainty.toFixed(2)}, urgency: ${st.agentState.urgency.toFixed(2)})`
+  if (current === 'instigating') {
+    const { message, base } = await generateSignal()
+    return `Player ${p.id} says "${message}" in base${base}`
+  } else {
+    return `Player ${p.id} is ${current}`
+  }
+}
+
+export const updateRound = async (players) => {
+  console.log(`\nCycle ${round}\n`)
+  for (const p of players) {
+    p.priors = getLikelihood(players, p.priors, p.id)
+    console.log(await snapshotLine(p))
+  }
+  round++
+  return players
 }

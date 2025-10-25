@@ -7,13 +7,6 @@ export const CENTER_KICK_P = 0.08
 export const CENTER_KICK_MIN = 0.08
 export const CENTER_KICK_MAX = 0.15
 
-export const BEHAVIORAL_QUADRANTS = [
-  [0, 0.25],
-  [0.25, 0.5],
-  [0.5, 0.75],
-  [0.75, 1.0]
-]
-
 const EDGE_WEIGHT = 0.75
 const KICK_THRESH = 0.6
 const SMOOTHSTEP_OBSERVE_MIN = 0.25
